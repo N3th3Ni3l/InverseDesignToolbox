@@ -24,16 +24,16 @@
 clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-ProblemName = 'VibrationIsolator';      % the parameters are saved as results/<ProblemName>.mat (step 9)
+ProblemName = 'test2';      % the parameters are saved as results/<ProblemName>.mat (step 9)
 P = struct();                           % all parameters are collected in P, step by step
 
 
 %% 1. IMPORT AND VIEW THE GEOMETRY  (check: is everything imported correctly? note the face numbers)
 % STEP / IGES / STL files; relative paths start in the toolbox folder (cad/...). Any number of parts.
 % Where parts overlap, the FIRST part owns the overlap. Face numbers depend on this order.
-P.Geometry.Files = {'cad/03AccHolder.STEP', ...      % part 1: central holder (carries the sensor)
-                    'cad/02DesignFrame.STEP', ...    % part 2: design frame (the part that can be redesigned)
-                    'cad/01FixedFrame.STEP'};        % part 3: outer fixed frame
+P.Geometry.Files = {'cad/accelHolder100mm.STEP', ...      % part 1: central holder (carries the sensor)
+                    'cad/designFrame100mm.STEP', ...    % part 2: design frame (the part that can be redesigned)
+                    'cad/fixedFrame100mm.STEP'};        % part 3: outer fixed frame
 P.Geometry.Names = {'Holder', 'Design frame', 'Fixed frame'};
 P.Geometry.Scale = 1;                                % file units -> meters (STEP is already meters; STL in mm: 1e-3)
 
@@ -53,8 +53,8 @@ faces = list_faces(geom);       % table: face ID, centroid, size (helps to ident
 P.Design.Type         = 'bricks';   % 'bricks' | 'none' (no design domain: analyse the geometry as imported)
 P.Design.Part         = 2;          % which part is the design domain (index in Files above)
 P.Design.MinPrintSize = 1.0e-3;     % smallest printable feature [m]
-P.Design.Density      = 80;         % 0 = coarse bricks ... 100 = finest (edge = MinPrintSize)
-P.Design.Layers       = [0 0 3];    % hard layer count [nx ny nz]; 0 = automatic. [0 0 3] = exactly 3 layers in z
+P.Design.Density      = 20;         % 0 = coarse bricks ... 100 = finest (edge = MinPrintSize)
+P.Design.Layers       = [0 0 0];    % hard layer count [nx ny nz]; 0 = automatic. [0 0 3] = exactly 3 layers in z
 P.Design.MinFill      = 0.5;        % a grid cell becomes a brick only if >= 50 % full of design material
 P.Design.MaxOverlap   = 0;          % ... and overlaps other parts by at most this fraction
 
@@ -66,7 +66,7 @@ if strcmpi(P.Design.Type, 'bricks'), plot_bricks(geom, bricks); end
 % M is the selection on the brick grid: 1 = present, 0 = removed, NaN = not a brick. Coordinates are
 % brick centers in meters. Start from "all present" and remove / keep bricks with a rule, or edit M by hand.
 % M = idt_select_bricks(bricks);                                            % A: all bricks present
-M = idt_select_bricks(bricks, 'KeepFcn', @(x,y,z) abs(x) < 3e-3 | abs(y) < 3e-3);   % B: keep only a cross
+M = idt_select_bricks(bricks, 'KeepFcn', @(x,y,z) abs(x) < 7e-3 | abs(y) < 7e-3);   % B: keep only a cross
 % M = idt_select_bricks(bricks, 'RemoveBox', [-20e-3 20e-3 5e-3 20e-3 0 5e-3]);     %    cut a slot
 % M = idt_select_bricks(bricks, 'RemoveIJK', [3 4 1; 3 5 1]);                       %    remove by grid index
 % M(5:8, :, 1) = 0;                                                                 % C: edit the matrix by hand
@@ -79,7 +79,7 @@ if strcmpi(P.Design.Type, 'bricks'), idt_plot_brick_selection(geom, bricks, M); 
 % Read the face numbers from the figure of step 1 (or the table `faces`) and enter them here.
 P.BC.FixedFaces    = [1 2 3 4];                 % clamped faces (u = v = w = 0), here the 4 bolt holes
 P.BC.LoadPoint     = [0 0 5e-3];                % [x y z] where the harmonic force acts [m]
-P.BC.LoadDirection = [0 0 1];                   % force direction (z = vertical)
+P.BC.LoadDirection = [1 1 0];                   % force direction (z = vertical)
 P.BC.LoadAmplitude = 1.0;                       % force amplitude [N]
 P.BC.OutPoints     = [0 0 5e-3; ...             % response points [m], one per row (output 1, 2, ...)
                       8.67e-3 6.76e-3 5e-3];
@@ -110,7 +110,7 @@ P.Analysis.FreqStart        = 2;    % sweep start [Hz]
 P.Analysis.FreqEnd          = 500;  % sweep end   [Hz]
 P.Analysis.FreqStep         = 3;    % sweep step  [Hz] (larger = faster, coarser curves)
 P.Analysis.Zeta             = 0.05; % modal damping ratio (0.05 = 5 %)
-P.Analysis.NModes           = 8;    % eigenmodes kept (want highest mode > 1.5 x FreqEnd, see "modal coverage")
+P.Analysis.NModes           = 28;    % eigenmodes kept (want highest mode > 1.5 x FreqEnd, see "modal coverage")
 P.Analysis.Transmissibility = true; % also compute base-excitation transmissibility
 
 model = idt_assemble_model(P, geom, bricks, bc, mesh);

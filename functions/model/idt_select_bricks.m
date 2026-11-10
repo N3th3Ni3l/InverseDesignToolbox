@@ -32,6 +32,7 @@ function M = idt_select_bricks(bricks, varargin)
 
     g = bricks.Grid;
     present = find(bricks.Present);
+    present = present(:);                  % find(false) is 0x0; a column keeps ijk at n x 3 (P.Design.Type = 'none')
     [i, j, k] = ind2sub(g.N, present);
     ijk = [i j k];
     ctr = g.Min + (ijk - 0.5) .* g.Size;

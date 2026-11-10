@@ -19,11 +19,11 @@ clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
 %% 1. LOAD THE PROBLEM  (the parameters saved by SIM_HarmonicMotion.m)
-ProblemName = 'VibrationIsolator';
+ProblemName = 'test2';
 P = idt_load_params(ProblemName);
 
 % Changes for the optimization run (the same ones as in CASE_SIMP_TargetFrequency.m, so results are comparable):
-P.Design.Density = 30;                       % bigger bricks = fewer variables (402 bricks)
+P.Design.Density = 20;                       % bigger bricks = fewer variables (402 bricks)
 P.Analysis.Transmissibility = false;         % not needed for the search: every analysis is faster
 
 model = idt_build_model(P);
@@ -51,7 +51,8 @@ H.Clean        = struct('MinWidth', 2, ...        % smallest feature width in br
                         'CloseGaps', 2, ...       % one-brick gaps and holes are filled
                         'Overhang', false, ...    % true = remove bricks without support below (print bottom-up)
                         'KeepOnly', 'loadpath');  % keep only groups joining supports and load ('attached' | 'all')
-H.Polish       = struct('MaxSteps', 12, 'Tol', 0.5);   % brick-by-brick fine tuning with the real analysis; [] = off
+H.Polish       = struct('MaxSteps', 6, 'Tol', 0.5);   % brick-by-brick fine tuning with the real analysis; [] = off
+
 
 %% 3. OPTIMIZE  (training data -> network -> ga on the network -> verification, repeated)
 out = nn_optimize(model, H);
