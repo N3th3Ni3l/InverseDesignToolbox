@@ -43,7 +43,7 @@ model = idt_build_model(P);                  % prints the damper / structure rat
 %% 2. ISOLATION GOAL AND OPTIONS  (explained in functions/analysis/idt_isolation_options.m and optimizers/genetic/genetic_options.m)
 H = struct();
 H.Objective = 'MinTransmissibility';         % ISOLATOR: smallest peak transmissibility in the stop band (+ flat passband)
-H.Isolation.Band     = [100 500];            % stop band [f_low f_high] Hz: T should be small here
+H.Isolation.Band     = [90 500];            % stop band [f_low f_high] Hz: T should be small here
 H.Isolation.Pass     = [2 60];               % flat passband Hz: T should stay near 1 here (no resonance peak); [] = no passband rule
 H.Isolation.PassTol  = 3;                    % allowed deviation of 20*log10(T) in the passband [dB]
 H.Isolation.PassWeight = 1;                  % cost of 1 dB passband violation relative to 1 dB less isolation
@@ -51,8 +51,8 @@ H.Isolation.Output   = 1;                    % protected output point: 1 = holde
 H.Isolation.Pairs    = [3 3];                % [response base] directions, 1 x, 2 y, 3 z: [3 3] = vertical
 H.VolMax      = [];                          % not used here
 H.PopSize     = 60;                          % individuals per generation (each one is a real analysis)
-H.Generations = 40;                          % maximum number of generations
-H.StallGenerations = 12;                     % stop when the best cost has not improved for this many generations
+H.Generations = 20;                          % maximum number of generations
+H.StallGenerations = 6;                     % stop when the best cost has not improved for this many generations
 H.EliteCount  = 3;
 H.CrossoverFraction = 0.8;
 H.MutationRate = 0.004;

@@ -24,24 +24,22 @@
 clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-ProblemName = 'test2';      % the parameters are saved as results/<ProblemName>.mat (step 9)
+ProblemName = 'design1.825arm';      % the parameters are saved as results/<ProblemName>.mat (step 9)
 P = struct();                           % all parameters are collected in P, step by step
 
 
 %% 1. IMPORT AND VIEW THE GEOMETRY  (check: is everything imported correctly? note the face numbers)
 % STEP / IGES / STL files; relative paths start in the toolbox folder (cad/...). Any number of parts.
 % Where parts overlap, the FIRST part owns the overlap. Face numbers depend on this order.
-P.Geometry.Files = {'cad/accelHolder100mm.STEP', ...      % part 1: central holder (carries the sensor)
-                    'cad/designFrame100mm.STEP', ...    % part 2: design frame (the part that can be redesigned)
-                    'cad/fixedFrame100mm.STEP'};        % part 3: outer fixed frame
-P.Geometry.Names = {'Holder', 'Design frame', 'Fixed frame'};
+P.Geometry.Files = {'cad\TestDamper1.825mmArm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
+P.Geometry.Names = {'Design'};
 P.Geometry.Scale = 1;                                % file units -> meters (STEP is already meters; STL in mm: 1e-3)
 
 % Materials: a library name ('Aluminum-6061', 'Structural-Steel', 'PLA', ... see core/get_material_properties.m)
 % or your own struct(Name, E [Pa], nu, rho [kg/m^3]).
-TPU       = struct('Name', 'TPU',       'E', 0.05e9, 'nu', 0.45, 'rho', 1200);
+TPU       = struct('Name', 'TPU',       'E', 46.8e6, 'nu', 0.45, 'rho', 1201);
 TPU_heavy = struct('Name', 'TPU-Heavy', 'E', 0.05e9, 'nu', 0.45, 'rho', 2000);
-P.Geometry.Materials = {TPU_heavy, TPU, TPU};        % one per file, same order
+P.Geometry.Materials = {TPU};        % one per file, same order
 
 geom = idt_import_geometry(P);
 plot_geometry(geom);            % figure 1: each imported part (check size and shape) | figure 2: the fused assembly WITH FACE NUMBERS
@@ -50,8 +48,8 @@ faces = list_faces(geom);       % table: face ID, centroid, size (helps to ident
 
 %% 2. BRICK THE DESIGN DOMAIN  (check: do the bricks cover the part you want to redesign?)
 % The part an optimizer may change is cut into a grid of switchable bricks (1 = present, 0 = removed).
-P.Design.Type         = 'bricks';   % 'bricks' | 'none' (no design domain: analyse the geometry as imported)
-P.Design.Part         = 2;          % which part is the design domain (index in Files above)
+P.Design.Type         = 'none';   % 'bricks' | 'none' (no design domain: analyse the geometry as imported)
+P.Design.Part         = 1;          % which part is the design domain (index in Files above)
 P.Design.MinPrintSize = 1.0e-3;     % smallest printable feature [m]
 P.Design.Density      = 20;         % 0 = coarse bricks ... 100 = finest (edge = MinPrintSize)
 P.Design.Layers       = [0 0 0];    % hard layer count [nx ny nz]; 0 = automatic. [0 0 3] = exactly 3 layers in z
@@ -65,8 +63,8 @@ if strcmpi(P.Design.Type, 'bricks'), plot_bricks(geom, bricks); end
 %% 3. CHOOSE THE BRICKS TO KEEP  (check: the preview shows exactly the layout you want to simulate)
 % M is the selection on the brick grid: 1 = present, 0 = removed, NaN = not a brick. Coordinates are
 % brick centers in meters. Start from "all present" and remove / keep bricks with a rule, or edit M by hand.
-% M = idt_select_bricks(bricks);                                            % A: all bricks present
-M = idt_select_bricks(bricks, 'KeepFcn', @(x,y,z) abs(x) < 7e-3 | abs(y) < 7e-3);   % B: keep only a cross
+M = idt_select_bricks(bricks);                                            % A: all bricks present
+% M = idt_select_bricks(bricks, 'KeepFcn', @(x,y,z) abs(x) < 7e-3 | abs(y) < 7e-3);   % B: keep only a cross
 % M = idt_select_bricks(bricks, 'RemoveBox', [-20e-3 20e-3 5e-3 20e-3 0 5e-3]);     %    cut a slot
 % M = idt_select_bricks(bricks, 'RemoveIJK', [3 4 1; 3 5 1]);                       %    remove by grid index
 % M(5:8, :, 1) = 0;                                                                 % C: edit the matrix by hand
@@ -82,7 +80,7 @@ P.BC.LoadPoint     = [0 0 5e-3];                % [x y z] where the harmonic for
 P.BC.LoadDirection = [1 1 0];                   % force direction (z = vertical)
 P.BC.LoadAmplitude = 1.0;                       % force amplitude [N]
 P.BC.OutPoints     = [0 0 5e-3; ...             % response points [m], one per row (output 1, 2, ...)
-                      8.67e-3 6.76e-3 5e-3];
+                      0 5.76e-3 4e-3];
 P.BC.ExtraMass     = 0.005;                     % lumped extra mass, e.g. a sensor [kg] (0 = none)
 P.BC.ExtraMassBox  = [-10.25e-3 10.25e-3 -8e-3 8e-3 -Inf Inf];   % where it sits [xmin xmax ymin ymax zmin zmax]
 
@@ -109,7 +107,7 @@ P.Analysis.Type             = 'ModalHarmonic';
 P.Analysis.FreqStart        = 2;    % sweep start [Hz]
 P.Analysis.FreqEnd          = 500;  % sweep end   [Hz]
 P.Analysis.FreqStep         = 3;    % sweep step  [Hz] (larger = faster, coarser curves)
-P.Analysis.Zeta             = 0.05; % modal damping ratio (0.05 = 5 %)
+P.Analysis.Zeta             = 0.1465; % modal damping ratio (0.05 = 5 %)
 P.Analysis.NModes           = 28;    % eigenmodes kept (want highest mode > 1.5 x FreqEnd, see "modal coverage")
 P.Analysis.Transmissibility = true; % also compute base-excitation transmissibility
 

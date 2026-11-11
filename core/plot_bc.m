@@ -13,8 +13,7 @@ function fig = plot_bc(geom, bc)
 % Author: Dr. Osman Sayginer (InverseDesignToolbox)
     gm = geom.Assembly;
     ext = max(max(gm.Vertices) - min(gm.Vertices));
-    m = generateMesh(femodel(AnalysisType="structuralStatic", Geometry=gm), ...
-                     Hmax=ext / 18, GeometricOrder="linear");
+    m = preview_mesh(gm, 18);       % retries finer if the coarse preview mesh fails
     nd = m.Mesh.Nodes';
     fig = figure('Name', 'Boundary conditions', 'Color', 'w', 'Position', [140 100 760 580]);
     pdegplot(gm, 'FaceAlpha', 0.15); hold on;

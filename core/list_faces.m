@@ -10,9 +10,7 @@ function T = list_faces(geom, verbose)
 
     if nargin < 2, verbose = true; end
     gm = geom.Assembly;
-    ext = max(max(gm.Vertices) - min(gm.Vertices));
-    m = generateMesh(femodel(AnalysisType="structuralStatic", Geometry=gm), ...
-                     Hmax=ext / 25, GeometricOrder="linear");
+    m = preview_mesh(gm, 25);       % retries finer if the coarse preview mesh fails
     nd = m.Mesh.Nodes;
     nf = gm.NumFaces;
     ID = (1:nf)'; C = zeros(nf, 3); E = zeros(nf, 3);

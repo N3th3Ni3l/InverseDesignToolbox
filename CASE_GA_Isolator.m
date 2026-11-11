@@ -21,7 +21,7 @@ clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
 %% 1. LOAD THE PROBLEM  (the parameters saved by SIM_HarmonicMotion.m)
-ProblemName = 'VibrationIsolator';
+ProblemName = 'test2';
 P = idt_load_params(ProblemName);
 
 % Changes for the isolator run:
@@ -38,9 +38,9 @@ model = idt_build_model(P);
 %% 2. ISOLATION GOAL AND OPTIONS  (explained in functions/analysis/idt_isolation_options.m and optimizers/genetic/genetic_options.m)
 H = struct();
 H.Objective = 'MinTransmissibility';         % ISOLATOR: the smallest peak transmissibility inside the band
-H.Isolation.Band    = [100 500];             % [f_low f_high] Hz that must be blocked
+H.Isolation.Band    = [90 500];             % [f_low f_high] Hz that must be blocked
 H.Isolation.Output  = 1;                     % protected output point(s): 1 = holder centre, 2 = second point, 'all' = worst of all
-H.Isolation.Pairs   = [3 3];                 % [response base] directions, 1 x, 2 y, 3 z: [3 3] = vertical base motion -> vertical response
+H.Isolation.Pairs   = [1 2;  2 1];                 % [response base] directions, 1 x, 2 y, 3 z: [3 3] = vertical base motion -> vertical response
                                              % [3 3; 1 1; 2 2] would block vertical AND both lateral directions
 H.Isolation.Pass    = [2 60];               % FLAT PASSBAND [f_low f_high] Hz: T should stay near 1 here (no resonance peak); [] = no passband rule
 H.Isolation.PassTol = 3;                    % allowed deviation of 20*log10(T) in the passband [dB] (3 dB = T between 0.71 and 1.41)
@@ -48,8 +48,8 @@ H.Isolation.PassTol = 3;                    % allowed deviation of 20*log10(T) i
 H.Isolation.TargetT = 0.5;                   % stop as soon as the peak T in the band is below this (0.1 = -20 dB); [] = never stop early
 H.VolMax      = [];                          % optional: largest volume fraction of the design domain, 0..1
 H.PopSize     = 60;                          % individuals per generation (each one is a real analysis)
-H.Generations = 40;                          % maximum number of generations
-H.StallGenerations = 12;                     % stop when the best cost has not improved for this many generations
+H.Generations = 20;                          % maximum number of generations
+H.StallGenerations = 6;                     % stop when the best cost has not improved for this many generations
 H.EliteCount  = 3;                           % best individuals copied unchanged into the next generation
 H.CrossoverFraction = 0.8;                   % fraction of children made by two-point crossover
 H.MutationRate = 0.004;                      % probability that a brick flips
