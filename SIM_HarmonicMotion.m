@@ -24,14 +24,14 @@
 clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-ProblemName = 'design1.825arm';      % the parameters are saved as results/<ProblemName>.mat (step 9)
+ProblemName = 'centDesign1.825mm';      % the parameters are saved as results/<ProblemName>.mat (step 9)
 P = struct();                           % all parameters are collected in P, step by step
 
 
 %% 1. IMPORT AND VIEW THE GEOMETRY  (check: is everything imported correctly? note the face numbers)
 % STEP / IGES / STL files; relative paths start in the toolbox folder (cad/...). Any number of parts.
 % Where parts overlap, the FIRST part owns the overlap. Face numbers depend on this order.
-P.Geometry.Files = {'cad\TestDamper1.825mmArm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
+P.Geometry.Files = {'cad\centDesign1.825arm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
 P.Geometry.Names = {'Design'};
 P.Geometry.Scale = 1;                                % file units -> meters (STEP is already meters; STL in mm: 1e-3)
 
@@ -75,25 +75,26 @@ if strcmpi(P.Design.Type, 'bricks'), idt_plot_brick_selection(geom, bricks, M); 
 
 %% 4. BOUNDARY CONDITIONS AND LOAD  (check: supports red, load arrow magenta, outputs green)
 % Read the face numbers from the figure of step 1 (or the table `faces`) and enter them here.
-P.BC.FixedFaces    = [1 2 3 4];                 % clamped faces (u = v = w = 0), here the 4 bolt holes
-P.BC.LoadPoint     = [0 0 5e-3];                % [x y z] where the harmonic force acts [m]
-P.BC.LoadDirection = [1 1 0];                   % force direction (z = vertical)
-P.BC.LoadAmplitude = 1.0;                       % force amplitude [N]
+P.BC.FixedFaces    = [2 6 12 8];                 % clamped faces (u = v = w = 0), here the 4 bolt holes
+P.BC.LoadPoint    = [0 0 5e-3];                % [x y z] where the harmonic force acts [m]
+P.BC.LoadDirection = [0 1 0];                   % force direction (z = vertical)
+P.BC.LoadAmplitude = .1;                       % force amplitude [N]
 P.BC.OutPoints     = [0 0 5e-3; ...             % response points [m], one per row (output 1, 2, ...)
                       0 5.76e-3 4e-3];
-P.BC.ExtraMass     = 0.005;                     % lumped extra mass, e.g. a sensor [kg] (0 = none)
-P.BC.ExtraMassBox  = [-10.25e-3 10.25e-3 -8e-3 8e-3 -Inf Inf];   % where it sits [xmin xmax ymin ymax zmin zmax]
+P.BC.ExtraMass     = (1.85*10^-3);                     % lumped extra mass, e.g. a sensor [kg] (0 = none)
+P.BC.ExtraMassBox  = [-10.5e-3 10.5e3 0 5e-3 -8e-3 8e-3 ];   % where it sits [xmin xmax ymin ymax zmin zmax]
 
 idt_validate_params(P, geom);       % plain-language check of everything entered so far (stops with a list of problems)
 bc = idt_make_bc(P);
 plot_bc(geom, bc);
 
 
+
 %% 5. MESH  (check: elements clearly smaller than a brick)
 % The mesh follows the CAD surfaces and is independent of the bricks.
 % Keep Hmax <= about 0.7 x the brick edge (printed in step 2), otherwise step 6 warns about bricks
 % that contain no element and cannot be switched.
-P.Mesh.Hmax   = 2.0e-3;             % target element size [m]
+P.Mesh.Hmax   = 1.0e-3;             % target element size [m]
 P.Mesh.Order  = 'linear';           % 'linear' = TET4 (fast, ~18 % too stiff) | 'quadratic' = TET10 (accurate, slower)
 P.Mesh.Refine = {};                 % local refinement, e.g. {[1 2 3 4], 1e-3} = finer mesh at faces 1-4
 
