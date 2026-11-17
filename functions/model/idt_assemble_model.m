@@ -15,11 +15,21 @@ function model = idt_assemble_model(P, geom, bricks, bc, mesh)
     fr = struct('Start', A.FreqStart, 'End', A.FreqEnd, 'Step', A.FreqStep, ...
                 'N', 120, 'Zeta', A.Zeta, 'NModes', A.NModes);
     model = build_model(geom, bricks, bc, mesh, 'Freq', fr);
+    if isfield(bricks, 'DesignParts') && ~isempty(bricks.DesignParts)
+        % several design parts (idt_make_bricks_multi, engine box mode): elements of the OTHER parts whose centroid
+        % falls in a brick (slivers at part boundaries) stay solid, so only the design parts can change
+        other = model.ElemVar > 0 & ~ismember(model.Tag, bricks.DesignParts);
+        model.ElemVar(other) = 0;  model.IsDesign(other) = false;
+        dead = model.NumVars - numel(unique(model.ElemVar(model.ElemVar > 0)));
+        fprintf('  Design parts %s: %d boundary elements of other parts kept solid', mat2str(bricks.DesignParts), nnz(other));
+        if dead > 0, fprintf(', %d variables now switch nothing', dead); end
+        fprintf('\n');
+    end
     model.Params = P;
     model.Damper = [];
     if isfield(P.Design, 'Damper') && ~isempty(P.Design.Damper) && strcmpi(P.Design.Type, 'bricks')
         dm = get_material_properties(P.Design.Damper);                    % damper grade
-        sm = get_material_properties(geom.Parts(P.Design.Part).Material);  % structural grade (the design part's own material)
+        sm = get_material_properties(geom.Parts(P.Design.Part(1)).Material);  % structural grade (the (first) design part's own material)
         if abs(dm.nu - sm.nu) > 1e-9
             warning('idt_assemble_model:DamperNu', 'Damper nu (%.2f) differs from the structure (%.2f): the damper stiffness is scaled by E only.', dm.nu, sm.nu);
         end

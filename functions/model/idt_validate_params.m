@@ -30,8 +30,9 @@ function ok = idt_validate_params(P, geom)
     %% design domain
     if ~any(strcmp(P.Design.Type, {'bricks', 'none'})), err{end+1} = 'P.Design.Type must be ''bricks'' or ''none''.'; end
     if strcmp(P.Design.Type, 'bricks')
-        if ~(isscalar(P.Design.Part) && P.Design.Part >= 1 && P.Design.Part <= nF && P.Design.Part == round(P.Design.Part))
-            err{end+1} = sprintf('P.Design.Part = %g is not a part number; use 1 to %d (position in P.Geometry.Files).', P.Design.Part(1), nF);
+        dp = P.Design.Part;
+        if ~(isnumeric(dp) && ~isempty(dp) && all(dp >= 1 & dp <= nF & dp == round(dp)) && numel(unique(dp)) == numel(dp))
+            err{end+1} = sprintf('P.Design.Part = [%s] is not a list of different part numbers; use 1 to %d (position in P.Geometry.Files).', num2str(dp(:)'), nF);
         end
         if P.Design.MinPrintSize <= 0 || P.Design.MinPrintSize > 0.05
             warn{end+1} = sprintf('P.Design.MinPrintSize = %g m (%.3g mm): units are meters, 1e-3 = 1 mm.', P.Design.MinPrintSize, P.Design.MinPrintSize * 1e3); %#ok<AGROW>

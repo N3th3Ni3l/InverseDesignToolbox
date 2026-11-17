@@ -24,22 +24,24 @@
 clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-ProblemName = 'centDesign1.825mm';      % the parameters are saved as results/<ProblemName>.mat (step 9)
+ProblemName = 'Design2';      % the parameters are saved as results/<ProblemName>.mat (step 9)
 P = struct();                           % all parameters are collected in P, step by step
 
 
 %% 1. IMPORT AND VIEW THE GEOMETRY  (check: is everything imported correctly? note the face numbers)
 % STEP / IGES / STL files; relative paths start in the toolbox folder (cad/...). Any number of parts.
 % Where parts overlap, the FIRST part owns the overlap. Face numbers depend on this order.
-P.Geometry.Files = {'cad/centDesign1.825arm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
-P.Geometry.Names = {'Design'};
+P.Geometry.Files = {'cad\accelHolder100mm.STEP',...
+                    'cad\designFrame100mm.STEP',...
+                    'cad\fixedFrame100mm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
+P.Geometry.Names = {'Central Holder', 'Design Frame', 'Fixed Frame'};
 P.Geometry.Scale = 1;                                % file units -> meters (STEP is already meters; STL in mm: 1e-3)
 
 % Materials: a library name ('Aluminum-6061', 'Structural-Steel', 'PLA', ... see core/get_material_properties.m)
 % or your own struct(Name, E [Pa], nu, rho [kg/m^3]).
 TPU       = struct('Name', 'TPU',       'E', 46.8e6, 'nu', 0.45, 'rho', 1201);
 TPU_heavy = struct('Name', 'TPU-Heavy', 'E', 0.05e9, 'nu', 0.45, 'rho', 2000);
-P.Geometry.Materials = {TPU};        % one per file, same order
+P.Geometry.Materials = {TPU, TPU, TPU};        % one per file, same order
 
 geom = idt_import_geometry(P);
 plot_geometry(geom);            % figure 1: each imported part (check size and shape) | figure 2: the fused assembly WITH FACE NUMBERS
@@ -48,11 +50,11 @@ faces = list_faces(geom);       % table: face ID, centroid, size (helps to ident
 
 %% 2. BRICK THE DESIGN DOMAIN  (check: do the bricks cover the part you want to redesign?)
 % The part an optimizer may change is cut into a grid of switchable bricks (1 = present, 0 = removed).
-P.Design.Type         = 'none';   % 'bricks' | 'none' (no design domain: analyse the geometry as imported)
-P.Design.Part         = 1;          % which part is the design domain (index in Files above)
+P.Design.Type         = 'bricks';   % 'bricks' | 'none' (no design domain: analyse the geometry as imported)
+P.Design.Part         = 2;          % which part is the design domain (index in Files above)
 P.Design.MinPrintSize = 1.0e-3;     % smallest printable feature [m]
-P.Design.Density      = 20;         % 0 = coarse bricks ... 100 = finest (edge = MinPrintSize)
-P.Design.Layers       = [0 0 0];    % hard layer count [nx ny nz]; 0 = automatic. [0 0 3] = exactly 3 layers in z
+P.Design.Density      = 30;         % 0 = coarse bricks ... 100 = finest (edge = MinPrintSize)
+P.Design.Layers       = [0 0 1];    % hard layer count [nx ny nz]; 0 = automatic. [0 0 3] = exactly 3 layers in z
 P.Design.MinFill      = 0.5;        % a grid cell becomes a brick only if >= 50 % full of design material
 P.Design.MaxOverlap   = 0;          % ... and overlaps other parts by at most this fraction
 
@@ -63,9 +65,9 @@ if strcmpi(P.Design.Type, 'bricks'), plot_bricks(geom, bricks); end
 %% 3. CHOOSE THE BRICKS TO KEEP  (check: the preview shows exactly the layout you want to simulate)
 % M is the selection on the brick grid: 1 = present, 0 = removed, NaN = not a brick. Coordinates are
 % brick centers in meters. Start from "all present" and remove / keep bricks with a rule, or edit M by hand.
-M = idt_select_bricks(bricks);                                            % A: all bricks present
+% M = idt_select_bricks(bricks);                                            % A: all bricks present
 % M = idt_select_bricks(bricks, 'KeepFcn', @(x,y,z) abs(x) < 7e-3 | abs(y) < 7e-3);   % B: keep only a cross
-% M = idt_select_bricks(bricks, 'RemoveBox', [-20e-3 20e-3 5e-3 20e-3 0 5e-3]);     %    cut a slot
+ M = idt_select_bricks(bricks, 'RemoveBox', [-30e-3 30e-3 -30e-3 -22e-3 0 5e-3]);     %    cut a slot
 % M = idt_select_bricks(bricks, 'RemoveIJK', [3 4 1; 3 5 1]);                       %    remove by grid index
 % M(5:8, :, 1) = 0;                                                                 % C: edit the matrix by hand
 % brick_matrix([], M);                       % prints the layer maps ('#' present, '.' removed) to check an edit

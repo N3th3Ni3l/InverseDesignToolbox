@@ -72,7 +72,7 @@ Fields for `'bricks'`:
 
 | Field | Meaning |
 |---|---|
-| `Part` | index of the part that becomes the design domain |
+| `Part` | index of the part that becomes the design domain. A list, e.g. `[2 4]`, makes several parts designable on one shared brick grid (`idt_make_bricks_multi`); other parts stay solid. Bricks and SIMP/GA only, not the shape cutters |
 | `MinPrintSize` | smallest printable feature [m]. A brick edge can never be smaller. |
 | `Density` | 0 to 100. 100 = finest (edge = `MinPrintSize`). 0 = coarsest (edge = thinnest free dimension). |
 | `Layers` | `[nx ny nz]` hard layer counts; 0 = automatic. `[0 0 3]` = exactly 3 layers in z (printing layers). The free axes share one edge that follows `Density`. |

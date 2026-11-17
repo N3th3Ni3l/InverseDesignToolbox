@@ -5,6 +5,7 @@ function bricks = idt_make_bricks(P, geom)
 %
 % P.Design.Type = 'bricks': cut part P.Design.Part into a grid of switchable bricks
 % (size from MinPrintSize / Density / Layers, see docs/01_model_setup.md).
+% P.Design.Part may list several parts, e.g. [2 4]: they share one grid (see idt_make_bricks_multi).
 % P.Design.Type = 'none'  : no design domain (the geometry is analysed as imported).
 % Look at the result with plot_bricks(geom, bricks).
 %
@@ -14,6 +15,10 @@ function bricks = idt_make_bricks(P, geom)
     D = P.Design;
     switch lower(D.Type)
         case 'bricks'
+            if numel(D.Part) > 1                          % several design parts on one shared grid
+                bricks = idt_make_bricks_multi(geom, D);
+                return
+            end
             bricks = create_bricks(geom, 'DesignPart', D.Part, 'MinPrintSize', D.MinPrintSize, ...
                                    'Density', D.Density, 'Layers', D.Layers, ...
                                    'MinFill', D.MinFill, 'MaxOverlap', D.MaxOverlap);
