@@ -31,7 +31,7 @@ P = struct();                           % all parameters are collected in P, ste
 %% 1. IMPORT AND VIEW THE GEOMETRY  (check: is everything imported correctly? note the face numbers)
 % STEP / IGES / STL files; relative paths start in the toolbox folder (cad/...). Any number of parts.
 % Where parts overlap, the FIRST part owns the overlap. Face numbers depend on this order.
-P.Geometry.Files = {'cad\centDesign1.825arm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
+P.Geometry.Files = {'cad/centDesign1.825arm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
 P.Geometry.Names = {'Design'};
 P.Geometry.Scale = 1;                                % file units -> meters (STEP is already meters; STL in mm: 1e-3)
 
