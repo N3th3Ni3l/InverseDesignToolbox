@@ -21,7 +21,7 @@ clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
 %% 1. LOAD THE PROBLEM  (the parameters saved by SIM_HarmonicMotion.m)
-ProblemName = 'test2';
+ProblemName = 'Design3';
 P = idt_load_params(ProblemName);
 
 % Changes for the isolator run:
@@ -38,7 +38,7 @@ model = idt_build_model(P);
 %% 2. ISOLATION GOAL AND OPTIONS  (explained in functions/analysis/idt_isolation_options.m and optimizers/genetic/genetic_options.m)
 H = struct();
 H.Objective = 'MinTransmissibility';         % ISOLATOR: the smallest peak transmissibility inside the band
-H.Isolation.Band    = [90 500];             % [f_low f_high] Hz that must be blocked
+H.Isolation.Band    = [80 500];             % [f_low f_high] Hz that must be blocked
 H.Isolation.Output  = 1;                     % protected output point(s): 1 = holder centre, 2 = second point, 'all' = worst of all
 H.Isolation.Pairs   = [1 2;  2 1];                 % [response base] directions, 1 x, 2 y, 3 z: [3 3] = vertical base motion -> vertical response
                                              % [3 3; 1 1; 2 2] would block vertical AND both lateral directions
@@ -47,7 +47,7 @@ H.Isolation.PassTol = 3;                    % allowed deviation of 20*log10(T) i
                                              % between Pass(2) and Band(1) the response is free (the transition from passing to blocking)
 H.Isolation.TargetT = 0.5;                   % stop as soon as the peak T in the band is below this (0.1 = -20 dB); [] = never stop early
 H.VolMax      = [];                          % optional: largest volume fraction of the design domain, 0..1
-H.PopSize     = 60;                          % individuals per generation (each one is a real analysis)
+H.PopSize     = 40;                          % individuals per generation (each one is a real analysis)
 H.Generations = 20;                          % maximum number of generations
 H.StallGenerations = 6;                     % stop when the best cost has not improved for this many generations
 H.EliteCount  = 3;                           % best individuals copied unchanged into the next generation
@@ -59,7 +59,7 @@ H.UseParallel  = true;                       % evaluate the population in parall
 H.Seed         = 1;                          % random seed of the starting population
 % PRINTABILITY: every individual is cleaned (no checkerboards / islands / thin features) and the answer is polished.
 H.Clean  = struct('MinWidth', 2, 'CloseGaps', 2, 'Overhang', false, 'KeepOnly', 'loadpath');
-H.Polish = struct('MaxSteps', 8, 'Tol', 0.5);       % brick-by-brick fine tuning of the peak T with the real analysis; [] = off
+H.Polish = struct('MaxSteps', 6, 'Tol', 0.5);       % brick-by-brick fine tuning of the peak T with the real analysis; [] = off
 
 %% 3. OPTIMIZE  (evolve the layouts; every individual is cleaned and analysed with transmissibility)
 out = genetic_optimize(model, H);
