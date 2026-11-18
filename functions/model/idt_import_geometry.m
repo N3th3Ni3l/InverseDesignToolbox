@@ -12,6 +12,7 @@ function geom = idt_import_geometry(P)
     P = idt_prepare_params(P);
     files = P.Geometry.Files;
     for i = 1:numel(files)
+        files{i} = strrep(files{i}, '\', filesep);   % 'cad\x.STEP' written on Windows also works on Linux/macOS
         if ~isfile(files{i}), files{i} = fullfile(idt_root(), files{i}); end
         assert(isfile(files{i}), 'idt_import_geometry:NoCAD', 'CAD file not found: %s', files{i});
     end
