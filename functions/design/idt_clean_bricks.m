@@ -168,6 +168,10 @@ function tf = has_diagonals(C, Ad)
 end
 
 function [Ad, loadPath, nPieces] = keep_groups(C, Ad, keepOnly)
+    if isfield(C, 'Multi') && C.Multi
+        [Ad, loadPath, nPieces] = keep_groups_multi(C, Ad, keepOnly);
+        return;
+    end
     cc = bwconncomp(Ad, 6);
     nPieces = cc.NumObjects;
     keep = false(size(Ad));
@@ -186,4 +190,50 @@ function [Ad, loadPath, nPieces] = keep_groups(C, Ad, keepOnly)
     end
     Ad = keep;
     if ~strcmp(keepOnly, 'loadpath') || nPieces == 0, return; end
+end
+
+function [Ad, loadPath, nGroups] = keep_groups_multi(C, Ad, keepOnly)
+% Several design parts: brick groups and SOLID pieces (holder, fixed frame, outer frame, locked bricks) form a graph;
+% a group is joined to every solid piece it shares a face patch with (C.touchPiece).
+%   'loadpath': keep a group if it lies on a path supports -> load: it touches two DIFFERENT solid pieces, one of which
+%               reaches the supports and the other the load through the OTHER groups (or one piece holding both).
+%               A group hanging off a single piece (a dead end) is removed, as with one design part.
+%   'attached': keep a group if it is connected (through pieces and groups) to the supports or to the load.
+% loadPath = true if the kept groups and pieces join the supports and the load.
+    cc = bwconncomp(Ad, 6);
+    nGroups = cc.NumObjects;
+    nP = size(C.touchPiece, 2);
+    isS = false(1, nP);  isS(C.fixedPiece) = true;
+    isL = false(1, nP);  isL(C.needPiece)  = true;
+    Tg = false(nGroups, nP);                           % group x solid piece
+    for q = 1:nGroups, Tg(q, :) = any(C.touchPiece(C.lin2var(cc.PixelIdxList{q}), :), 1); end
+
+    keepG = true(nGroups, 1);
+    switch keepOnly
+        case 'loadpath'
+            for q = 1:nGroups
+                nb = find(Tg(q, :));
+                if isempty(nb), keepG(q) = false; continue; end
+                [rS, rL] = reach(Tg([1:q-1, q+1:nGroups], :), isS, isL);     % reachability WITHOUT group q
+                s = nb(rS(nb));  l = nb(rL(nb));
+                keepG(q) = any(isS(nb) & isL(nb)) || ...
+                           (~isempty(s) && ~isempty(l) && ~(isscalar(s) && isscalar(l) && s == l));
+            end
+        case 'attached'
+            [rS, rL] = reach(Tg, isS, isL);
+            for q = 1:nGroups, keepG(q) = any(rS(Tg(q, :)) | rL(Tg(q, :))); end
+    end
+    keep = false(size(Ad));
+    for q = find(keepG)', keep(cc.PixelIdxList{q}) = true; end
+    Ad = keep;
+    [rS, ~] = reach(Tg(keepG, :), isS, isL);
+    loadPath = any(rS & isL);
+end
+
+function [rS, rL] = reach(Tg, isS, isL)
+% solid pieces that reach a support piece / a load piece when the groups in Tg (group x piece) join the pieces they touch
+    nP = numel(isS);
+    A = double(Tg)' * double(Tg) > 0;  A(1:nP + 1:end) = false;     % pieces joined by a common group
+    comp = conncomp(graph(A));
+    rS = ismember(comp, comp(isS));  rL = ismember(comp, comp(isL));
 end

@@ -36,9 +36,15 @@ function C = idt_clean_setup(model, minSharedNodes)
     g = model.Bricks.Grid;
     isVar = false(g.N);  isVar(model.VarBricks) = true;
     lin2var = zeros(g.N);  lin2var(model.VarBricks) = 1:nVar;
+    % several design parts (idt_make_bricks_multi): a solid part can sit BETWEEN two design regions (e.g. a fixed frame
+    % between an inner and an outer design frame), so no single brick group touches both supports and load. Then the
+    % load path is followed through the solid pieces (see keep_groups in idt_clean_bricks). One design part: unchanged.
+    multi = isfield(model.Bricks, 'DesignParts') && numel(model.Bricks.DesignParts) > 1;
     C = struct('N', g.N, 'varBricks', model.VarBricks, 'nVar', nVar, 'present', model.Bricks.Present, ...
                'isVar', isVar, 'lin2var', lin2var, ...
                'touchSupport', any(cnt(:, fixedPiece) >= minSharedNodes, 2), ...
                'touchLoad',    any(cnt(:, needPiece)  >= minSharedNodes, 2), ...
-               'minSharedNodes', minSharedNodes);
+               'minSharedNodes', minSharedNodes, ...
+               'Multi', multi, 'touchPiece', cnt >= minSharedNodes, ...      % brick x solid piece (face contact)
+               'fixedPiece', fixedPiece, 'needPiece', needPiece);
 end
