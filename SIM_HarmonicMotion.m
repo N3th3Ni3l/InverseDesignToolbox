@@ -83,11 +83,11 @@ if strcmpi(P.Design.Type, 'bricks'), idt_plot_brick_selection(geom, bricks, M); 
 P.BC.FixedFaces    = [1 2 3 4];                 % clamped faces (u = v = w = 0), here the 4 bolt holes
 P.BC.LoadPoint    = [0 0 5e-3];                % [x y z] where the harmonic force acts [m]
 P.BC.LoadDirection = [0 0 1];                   % force direction (z = vertical)
-P.BC.LoadAmplitude = .1;                       % force amplitude [N]
+P.BC.LoadAmplitude = 1;                       % force amplitude [N]
 P.BC.OutPoints     = [0 0 5e-3; ...             % response points [m], one per row (output 1, 2, ...)
                       0 5.76e-3 4e-3];
 P.BC.ExtraMass     = (1.85*10^-3);                     % lumped extra mass, e.g. a sensor [kg] (0 = none)
-P.BC.ExtraMassBox  = [-10.5e-3 10.5e3 0 5e-3 -8e-3 8e-3 ];   % where it sits [xmin xmax ymin ymax zmin zmax]
+P.BC.ExtraMassBox  = [-10.5e-3 10.5e-3 -8e-3 8e-3 0 5e-3];   % where it sits [xmin xmax ymin ymax zmin zmax], rotated frame (z up)
 
 idt_validate_params(P, geom);       % plain-language check of everything entered so far (stops with a list of problems)
 bc = idt_make_bc(P);
