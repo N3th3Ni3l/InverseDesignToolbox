@@ -24,24 +24,27 @@
 clear; clc; close all;
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-ProblemName = 'Design2';      % the parameters are saved as results/<ProblemName>.mat (step 9)
+ProblemName = 'Design3';      % the parameters are saved as results/<ProblemName>.mat (step 9)
 P = struct();                           % all parameters are collected in P, step by step
 
 
 %% 1. IMPORT AND VIEW THE GEOMETRY  (check: is everything imported correctly? note the face numbers)
 % STEP / IGES / STL files; relative paths start in the toolbox folder (cad/...). Any number of parts.
 % Where parts overlap, the FIRST part owns the overlap. Face numbers depend on this order.
-P.Geometry.Files = {'cad\accelHolder100mm.STEP',...
-                    'cad\designFrame100mm.STEP',...
-                    'cad\fixedFrame100mm.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
-P.Geometry.Names = {'Central Holder', 'Design Frame', 'Fixed Frame'};
-P.Geometry.Scale = 1;                                % file units -> meters (STEP is already meters; STL in mm: 1e-3)
+P.Geometry.Files = {'cad\design3\holder.STEP',...
+                    'cad\design3\innerDesign.STEP',...
+                    'cad\design3\innnerFixedFrame.STEP',...
+                    'cad\design3\outerDesign.STEP',...
+                    'cad\design3\fixedFrame.STEP'}; % part 1: central holder (carries the sensor)   % part 2: design frame (the part that can be redesigned) };        % part 3: outer fixed frame
+P.Geometry.Names = {'Holder', 'Inner Design','Fixed Frame', 'Outer Design', 'Fixed Frame'};
+P.Geometry.Scale = 1;   
+P.Geometry.Rotate = [90 1 0 0];                              % file units -> meters (STEP is already meters; STL in mm: 1e-3)
 
 % Materials: a library name ('Aluminum-6061', 'Structural-Steel', 'PLA', ... see core/get_material_properties.m)
 % or your own struct(Name, E [Pa], nu, rho [kg/m^3]).
 TPU       = struct('Name', 'TPU',       'E', 46.8e6, 'nu', 0.45, 'rho', 1201);
 TPU_heavy = struct('Name', 'TPU-Heavy', 'E', 0.05e9, 'nu', 0.45, 'rho', 2000);
-P.Geometry.Materials = {TPU, TPU, TPU};        % one per file, same order
+P.Geometry.Materials = {TPU, TPU, TPU, TPU, TPU};        % one per file, same order
 
 geom = idt_import_geometry(P);
 plot_geometry(geom);            % figure 1: each imported part (check size and shape) | figure 2: the fused assembly WITH FACE NUMBERS
@@ -51,7 +54,7 @@ faces = list_faces(geom);       % table: face ID, centroid, size (helps to ident
 %% 2. BRICK THE DESIGN DOMAIN  (check: do the bricks cover the part you want to redesign?)
 % The part an optimizer may change is cut into a grid of switchable bricks (1 = present, 0 = removed).
 P.Design.Type         = 'bricks';   % 'bricks' | 'none' (no design domain: analyse the geometry as imported)
-P.Design.Part         = 2;          % which part is the design domain (index in Files above)
+P.Design.Part         = [2 4];          % which part is the design domain (index in Files above)
 P.Design.MinPrintSize = 1.0e-3;     % smallest printable feature [m]
 P.Design.Density      = 30;         % 0 = coarse bricks ... 100 = finest (edge = MinPrintSize)
 P.Design.Layers       = [0 0 1];    % hard layer count [nx ny nz]; 0 = automatic. [0 0 3] = exactly 3 layers in z
@@ -65,9 +68,9 @@ if strcmpi(P.Design.Type, 'bricks'), plot_bricks(geom, bricks); end
 %% 3. CHOOSE THE BRICKS TO KEEP  (check: the preview shows exactly the layout you want to simulate)
 % M is the selection on the brick grid: 1 = present, 0 = removed, NaN = not a brick. Coordinates are
 % brick centers in meters. Start from "all present" and remove / keep bricks with a rule, or edit M by hand.
-% M = idt_select_bricks(bricks);                                            % A: all bricks present
+ M = idt_select_bricks(bricks);                                            % A: all bricks present
 % M = idt_select_bricks(bricks, 'KeepFcn', @(x,y,z) abs(x) < 7e-3 | abs(y) < 7e-3);   % B: keep only a cross
- M = idt_select_bricks(bricks, 'RemoveBox', [-30e-3 30e-3 -30e-3 -22e-3 0 5e-3]);     %    cut a slot
+% M = idt_select_bricks(bricks, 'RemoveBox', [-30e-3 30e-3 -30e-3 -22e-3 0 5e-3]);     %    cut a slot
 % M = idt_select_bricks(bricks, 'RemoveIJK', [3 4 1; 3 5 1]);                       %    remove by grid index
 % M(5:8, :, 1) = 0;                                                                 % C: edit the matrix by hand
 % brick_matrix([], M);                       % prints the layer maps ('#' present, '.' removed) to check an edit
@@ -77,9 +80,9 @@ if strcmpi(P.Design.Type, 'bricks'), idt_plot_brick_selection(geom, bricks, M); 
 
 %% 4. BOUNDARY CONDITIONS AND LOAD  (check: supports red, load arrow magenta, outputs green)
 % Read the face numbers from the figure of step 1 (or the table `faces`) and enter them here.
-P.BC.FixedFaces    = [2 6 12 8];                 % clamped faces (u = v = w = 0), here the 4 bolt holes
+P.BC.FixedFaces    = [1 2 3 4];                 % clamped faces (u = v = w = 0), here the 4 bolt holes
 P.BC.LoadPoint    = [0 0 5e-3];                % [x y z] where the harmonic force acts [m]
-P.BC.LoadDirection = [0 1 0];                   % force direction (z = vertical)
+P.BC.LoadDirection = [0 0 1];                   % force direction (z = vertical)
 P.BC.LoadAmplitude = .1;                       % force amplitude [N]
 P.BC.OutPoints     = [0 0 5e-3; ...             % response points [m], one per row (output 1, 2, ...)
                       0 5.76e-3 4e-3];
@@ -96,7 +99,7 @@ plot_bc(geom, bc);
 % The mesh follows the CAD surfaces and is independent of the bricks.
 % Keep Hmax <= about 0.7 x the brick edge (printed in step 2), otherwise step 6 warns about bricks
 % that contain no element and cannot be switched.
-P.Mesh.Hmax   = 1.0e-3;             % target element size [m]
+P.Mesh.Hmax   = 1.5e-3;             % target element size [m]
 P.Mesh.Order  = 'linear';           % 'linear' = TET4 (fast, ~18 % too stiff) | 'quadratic' = TET10 (accurate, slower)
 P.Mesh.Refine = {};                 % local refinement, e.g. {[1 2 3 4], 1e-3} = finer mesh at faces 1-4
 
