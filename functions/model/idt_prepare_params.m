@@ -17,4 +17,6 @@ function P = idt_prepare_params(P)
         P = S.P;
     end
     P = idt_fill_defaults(P, idt_default_params());
+    % 'cad\x.STEP' written on Windows also works on Linux/macOS (no change on Windows, where filesep is '\')
+    P.Geometry.Files = strrep(P.Geometry.Files, '\', filesep);
 end
