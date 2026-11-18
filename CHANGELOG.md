@@ -5,6 +5,55 @@ Newest entries at the top. Dates are YYYY-MM-DD.
 
 ---
 
+## 2026-11-17 - Printability clean-up follows the load path through solid parts (several design parts)
+
+### Why
+Every optimizer (GA, SIMP, neural network, static) cleans each layout with `idt_clean_bricks`, by default with
+`KeepOnly = 'loadpath'`: a group of face-connected bricks is kept only if **that one group** touches both the
+supports and the load. With two design regions separated by a solid part (outer frame | outer design frame |
+**fixed frame** | inner design frame | holder) no single group touches both ends:
+- inner design frame touches the holder (load) and the fixed frame,
+- outer design frame touches the fixed frame and the outer frame (supports).
+
+So the clean-up deleted **both design frames**, and its safety revert did not trigger because the original layout
+"failed" the same test. Confirmed on a hand-built case: the old rule kept 0 of 3 groups.
+
+### What it does now
+For models with several design parts the clean-up builds a small graph of brick groups and solid pieces
+(holder, fixed frame, outer frame, locked bricks):
+- `'loadpath'`: a group is kept if it touches two different solid pieces, one of which reaches the supports and the
+  other the load through the other groups. A group hanging off a single piece (a dead end) is still removed.
+- `'attached'`: a group is kept if it is connected (through pieces and groups) to the supports or the load.
+- `'all'`: unchanged.
+
+**Models with one design part use exactly the old rule** (switched by `C.Multi`, set in `idt_clean_setup`).
+
+### Files changed
+| File | Change |
+|---|---|
+| `functions/design/idt_clean_setup.m` | adds `Multi`, `touchPiece` (brick x solid piece), `fixedPiece`, `needPiece` to the setup struct |
+| `functions/design/idt_clean_bricks.m` | new local functions `keep_groups_multi` and `reach`; `keep_groups` calls them when `C.Multi` |
+
+### Tested
+- Hand-built case (support | g1 | middle | g2 | load, plus a dead-end group g3 on the middle piece):
+  old rule kept `[0 0 0]`; new rule keeps `[1 1 0]` with a load path; with g2 removed nothing is kept (no path);
+  `'attached'` keeps `[1 1 1]`.
+- Three-part assembly with `P.Design.Part = [2 3]` (5 solid pieces): a random layout cleans to a valid design.
+- Short GA run (`PopSize` 10, 2 generations): valid result, f1 = 141.7 Hz.
+- Short SIMP run + `simp_postprocess` (target 250 Hz): valid result, f1 = 268.1 Hz, 386 of 736 bricks.
+- Single-part model: `Multi = 0`, old rule used.
+
+### Check of the other optimizer parts (no change needed)
+- Finite-element solves, GA, SIMP, neural-network data and the connectivity test (`nn_validity_setup`) only use
+  `model.ElemVar` / `model.VarBricks` and follow paths through solid pieces already.
+- Not run: the neural-network optimizer (`CASE_NN_*`), the static optimizers and `idt_polish_bricks`. They use the
+  same clean-up and model fields, so they should work.
+- SIMP density filter: bricks of the two design frames that lie closer than the filter radius
+  (auto: 1.3 x MinWidth x brick edge, about 6.5 mm at 2.5 mm bricks) are smoothed together across the solid frame
+  between them. Harmless if the middle frame is wider than that; otherwise set a smaller `H.FilterRadius`.
+
+---
+
 ## 2026-11-17 - Several design parts at once (`P.Design.Part = [2 4]`)
 
 ### Why
@@ -66,8 +115,8 @@ On the shipped three-part assembly (`03AccHolder` / `02DesignFrame` / `01FixedFr
 - Single-part mode (`P.Design.Part = 2`) gives the same bricks as before (384).
 
 ### Limits / not yet tested
-- Only the SIM workflow was run. GA and SIMP read the same element-to-brick map and should work, but have
-  not been run with several design parts.
+- Only the SIM workflow was run here. (Update, same day: the optimizers' clean-up deleted multi-region designs;
+  fixed and GA / SIMP tested, see the entry above.)
 - The shape-cutter optimizers (`CASE_GA_Shape_*`, `SIM_ShapeCutters.m`) still take one design part only.
 - `export_geometry(..., 'Content', 'design')` uses a single design part and stops with an error for a list;
   `'structure'` and `'bricks'` exports are unaffected.
