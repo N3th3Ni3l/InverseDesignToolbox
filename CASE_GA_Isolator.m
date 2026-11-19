@@ -48,7 +48,7 @@ H.Isolation.PassTol = 3;                    % allowed deviation of 20*log10(T) i
 H.Isolation.TargetT = 0.5;                   % stop as soon as the peak T in the band is below this (0.1 = -20 dB); [] = never stop early
 H.VolMax      = [];                          % optional: largest volume fraction of the design domain, 0..1
 H.PopSize     = 40;                          % individuals per generation (each one is a real analysis)
-H.Generations = 20;                          % maximum number of generations
+H.Generations = 25;                          % maximum number of generations
 H.StallGenerations = 6;                     % stop when the best cost has not improved for this many generations
 H.EliteCount  = 3;                           % best individuals copied unchanged into the next generation
 H.CrossoverFraction = 0.8;                   % fraction of children made by two-point crossover
@@ -58,8 +58,8 @@ H.FieldRadius  = 6e-3;                       % smoothness of the random starting
 H.UseParallel  = true;                       % evaluate the population in parallel (Parallel Computing Toolbox)
 H.Seed         = 1;                          % random seed of the starting population
 % PRINTABILITY: every individual is cleaned (no checkerboards / islands / thin features) and the answer is polished.
-H.Clean  = struct('MinWidth', 2, 'CloseGaps', 2, 'Overhang', false, 'KeepOnly', 'loadpath');
-H.Polish = struct('MaxSteps', 6, 'Tol', 0.5);       % brick-by-brick fine tuning of the peak T with the real analysis; [] = off
+H.Clean  = struct('MinWidth', 3, 'CloseGaps', 3, 'Overhang', false, 'KeepOnly', 'loadpath');
+H.Polish = struct('MaxSteps', 8, 'Tol', 0.5);       % brick-by-brick fine tuning of the peak T with the real analysis; [] = off
 
 %% 3. OPTIMIZE  (evolve the layouts; every individual is cleaned and analysed with transmissibility)
 out = genetic_optimize(model, H);
